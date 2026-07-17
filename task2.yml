@@ -1,0 +1,9 @@
+---
+- name: Enable and start httpd service web servers
+  hosts: webservers
+  become: true
+  tasks:
+    - name: Start service httpd, if not started
+      ansible.builtin.service:
+        name: httpd
+        state: started
