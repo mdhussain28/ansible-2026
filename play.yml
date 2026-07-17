@@ -1,5 +1,5 @@
 ---
-- name: Install Nginx on eoc-node2
+- name: Install Nginx on test instances
   hosts: test
   become: true
   tasks:
