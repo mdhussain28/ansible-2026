@@ -1,0 +1,31 @@
+---
+- name: Pre-deployment disk space validation
+  hosts: webservers
+  become: yes
+  tasks:
+
+    - name: Check disk usage on root partition
+      check_disk_usage:
+        path: /
+        threshold: "{{ root_threshold | default(85) }}"
+      register: root_check
+      ignore_errors: yes
+
+    - name: Check disk usage on /var (build artifacts, logs)
+      check_disk_usage:
+        path: /var
+        threshold: 85
+      register: var_check
+      ignore_errors: yes
+
+    - name: Fail the pipeline early if any check failed
+      ansible.builtin.fail:
+        msg: >
+          Deployment blocked on {{ inventory_hostname }}:
+          root={{ root_check.used_percent }}% (threshold {{ root_check.threshold }}%),
+          /var={{ var_check.used_percent }}% (threshold {{ var_check.threshold }}%)
+      when: root_check.failed or var_check.failed
+
+    - name: Confirm all checks passed
+      ansible.builtin.debug:
+        msg: "Disk checks passed on {{ inventory_hostname }} — safe to proceed with deployment."
