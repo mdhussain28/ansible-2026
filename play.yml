@@ -1,0 +1,18 @@
+---
+- name: Install Nginx on eoc-node2
+  hosts: eoc-node2
+  become: true
+  tasks:
+    - name: Install nginx package
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+    - name: Ensure Nginx service is enabled and started
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: yes
+    - name: Add custom content to Nginx index.html
+      ansible.builtin.copy:
+        content: "Implementing multiple play!\n"
+        dest: /usr/share/nginx/html/index.html
