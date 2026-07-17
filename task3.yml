@@ -1,0 +1,10 @@
+---
+- name: Create /tmp/foo on eoc-node1
+  hosts: eoc-node1
+  become: true
+  tasks:
+    - name: Ensure /tmp/foo file exists
+      ansible.builtin.file:
+        path: /tmp/foo
+        state: touch
+        mode: '0644'
