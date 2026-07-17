@@ -1,0 +1,30 @@
+---
+- name: Install NGINX and deploy custom content
+  hosts: webservers
+  become: yes
+  tasks:
+    - name: Install NGINX 
+      ansible.builtin.dnf:
+        name: nginx
+        state: present
+        
+    - name: Deploy custom index.html
+      ansible.builtin.copy:
+        dest: /usr/share/nginx/html/index.html
+        content: |
+          <html>
+          <head><title>Custom NGINX Page</title></head>
+          <body>
+              <h1>Welcome to my custom NGINX page!</h1>
+              <p>Deployed using Ansible.</p>
+          </body>
+          </html>
+        owner: nginx
+        group: nginx
+        mode: '0644'
+        
+    - name: Ensure NGINX is enabled and started
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: yes
