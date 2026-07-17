@@ -1,0 +1,44 @@
+---
+- name: Enable intranet services
+  hosts: eoc-node1
+  become: yes
+  tasks:
+    - name: Ensure latest version of httpd and firewalld installed
+      ansible.builtin.dnf:
+        name:
+          - httpd
+          - firewalld
+        state: latest
+        
+    - name: Install test HTML page
+      ansible.builtin.copy:
+        content: "Welcome to the example.com intranet!\n"
+        dest: /var/www/html/index.html
+        
+    - name: Ensure firewalld enabled and running
+      ansible.builtin.service:
+        name: firewalld
+        enabled: true
+        state: started
+        
+    - name: Permit access to httpd service in firewalld
+      ansible.posix.firewalld:
+        service: http
+        permanent: true
+        state: enabled
+        immediate: yes
+        
+    - name: Ensure httpd enabled and running
+      ansible.builtin.service:
+        name: httpd
+        enabled: true
+        state: started
+
+- name: Test intranet web server
+  hosts: localhost
+  become: no
+  tasks:
+    - name: Connect to intranet web server
+      ansible.builtin.uri:
+        url: http://eoc-node1
+        return_content: yes
