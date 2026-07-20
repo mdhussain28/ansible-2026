@@ -1,0 +1,25 @@
+---
+- name: Verify ShopEase Custom Fact and Make Deployment Decision
+  hosts: test
+  gather_facts: true
+
+  tasks:
+
+    - name: Show the custom fact values
+      debug:
+        msg: >
+          Patch Status: {{ ansible_local.shopease.shopease.patch_status }},
+          App Version: {{ ansible_local.shopease.shopease.app_version }},
+          Last Deployed: {{ ansible_local.shopease.shopease.last_deployed }},
+
+    - name: Block deployment if not patch-approved
+      debug:
+        msg: "DEPLOYMENT BLOCKED — server not patch-approved"
+      when: ansible_local.shopease.shopease.patch_status != "approved"
+
+    - name: Combine built-in fact and custom fact for deployment readiness
+      debug:
+        msg: "{{ inventory_hostname }} is READY for deployment (v{{ ansible_local.shopease.shopease.app_version }})"
+      when:
+        - ansible_local.shopease.shopease.patch_status == "approved"
+        - ansible_facts.memfree_mb | int > 200
