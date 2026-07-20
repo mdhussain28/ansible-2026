@@ -1,0 +1,24 @@
+---
+- name: Check Built-in System Facts on ShopEase Test Server
+  hosts: test
+  tasks:
+
+    - name: Show basic system facts
+      debug:
+        msg: >
+          Host: {{ ansible_facts['hostname'] }},
+          OS: {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }},
+          CPUs: {{ ansible_facts['processor_vcpus'] }}
+
+    - name: Show memory facts
+      debug:
+        msg: "Free RAM: {{ ansible_facts['memfree_mb'] }}MB / Total: {{ ansible_facts['memtotal_mb'] }}MB"
+
+    - name: Check minimum free memory requirement
+      debug:
+        msg: "Sufficient memory available"
+      when: ansible_facts['memfree_mb'] | int > 200
+
+    - name: Try to check custom fact (will fail/undefined at this stage)
+      debug:
+        msg: "Patch status: {{ ansible_facts['local']['shopease']['shopease']['patch_status'] | default('NOT DEFINED YET - custom fact not created') }}"
