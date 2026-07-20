@@ -1,0 +1,29 @@
+---
+- name: Variables Demo Across dev/test/prod
+  hosts: dev:test:prod
+  tasks:
+
+    - name: Show environment config for this host
+      debug:
+        msg: >
+          {{ inventory_hostname }} → env={{ env_name }},
+          port={{ app_port }}, log_level={{ log_level }}, db_host={{ db_host }}
+
+    - name: Flag the shared node (test + prod)
+      debug:
+        msg: "{{ inventory_hostname }} belongs to multiple groups — note: {{ note }}"
+      when: note is defined
+
+    - name: Warn if debug endpoints are enabled
+      debug:
+        msg: "DEBUG ENDPOINTS ENABLED on {{ inventory_hostname }} — should never be true in prod!"
+      when: enable_debug_endpoints
+
+    - name: Show registered variable example (uptime)
+      command: uptime -p
+      register: uptime_result
+      changed_when: false
+
+    - name: Print uptime from registered variable
+      debug:
+        msg: "{{ inventory_hostname }} uptime: {{ uptime_result.stdout }}"
