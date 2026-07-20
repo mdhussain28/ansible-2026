@@ -1,0 +1,25 @@
+---
+- name: Deploy ShopEase Custom Fact to Test Server
+  hosts: test
+
+  tasks:
+
+    - name: Ensure custom facts directory exists
+      file:
+        path: /etc/ansible/facts.d
+        state: directory
+        mode: "0755"
+
+    - name: Deploy ShopEase custom fact file
+      copy:
+        content: |
+          [shopease]
+          patch_status={{ patch_status }}
+          app_version={{ app_version }}
+          last_deployed={{ last_deployed }}
+        dest: /etc/ansible/facts.d/shopease.fact
+        mode: "0644"
+
+    - name: Confirm fact deployment
+      debug:
+        msg: "ShopEase deployment metadata updated successfully."
