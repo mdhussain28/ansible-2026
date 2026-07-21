@@ -1,0 +1,51 @@
+---
+- name: ShopEase Prod - Config Deploy with Rollback (block/rescue/always)
+  hosts: eoc-node3
+  tasks:
+
+    - name: Backup current feature-flag config (create default if missing)
+      copy:
+        content: "feature_enabled=false\n"
+        dest: /opt/shopease-config.bak
+        force: no   # only creates it if it doesn't already exist
+
+    - name: Deploy new config, validate, and apply safely
+      block:
+        - name: Deploy new feature-flag config (intentionally invalid for demo)
+          copy:
+            content: "feature_enabled=true\n"
+            dest: /opt/shopease-config.conf
+
+        - name: Validate config content
+          shell: grep -qE 'feature_enabled=(true|false)' /opt/shopease-config.conf
+          register: validation
+
+        - name: Apply new config as active
+          copy:
+            src: /opt/shopease-config.conf
+            dest: /opt/shopease-active.conf
+            remote_src: yes
+
+        - name: Confirm new config applied
+          debug:
+            msg: "New config validated and applied on {{ inventory_hostname }}"
+
+      rescue:
+        - name: New config failed validation - alert ops
+          debug:
+            msg: "New config FAILED validation on {{ inventory_hostname }} - rolling back"
+
+        - name: Restore previous working config from backup
+          copy:
+            src: /opt/shopease-config.bak
+            dest: /opt/shopease-active.conf
+            remote_src: yes
+
+        - name: Confirm rollback completed
+          debug:
+            msg: "Rollback complete - {{ inventory_hostname }} using previous stable config"
+
+      always:
+        - name: Log the deployment attempt outcome
+          debug:
+            msg: "Deployment attempt on {{ inventory_hostname }} finished (success or rollback) - recorded for audit"
