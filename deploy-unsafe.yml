@@ -1,0 +1,21 @@
+---
+- name: ShopEase Prod Release v2.5.0 - Unsafe Rollout
+  hosts: prod
+  tasks:
+    - name: Write new version file
+      copy:
+        content: "v2.5.0\n"
+        dest: /opt/shopease/version.txt
+
+    - name: Run post-deploy validation script (this release has a bug)
+      shell: |
+        VERSION=$(cat /opt/shopease/version.txt)
+        if [ "$VERSION" == "v2.5.0" ]; then
+          echo "FATAL: known bad build $VERSION" >&2
+          exit 1
+        fi
+      register: validation
+
+    - name: Confirm release validated successfully
+      debug:
+        msg: "Release validated on {{ inventory_hostname }}"
