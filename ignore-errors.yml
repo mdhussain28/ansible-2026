@@ -1,0 +1,12 @@
+---
+- name: ShopEase Prod - ignore_errors Demo
+  hosts: prod
+  tasks:
+
+    - name: Delete leftover temp file from previous release (may not exist)
+      command: rm /tmp/shopease-old-release.tmp
+      ignore_errors: yes
+
+    - name: Confirm cleanup step did not block the deployment
+      debug:
+        msg: "Deployment continuing on {{ inventory_hostname }} regardless of cleanup result"
