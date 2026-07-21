@@ -1,0 +1,11 @@
+---
+- name: Add block of text to a file
+  hosts: all
+  tasks:
+    - name: Add a block of text to an exixting file
+      blockinfile:
+        path: /users.txt
+        block: |
+          This block of text consistes of two lines
+          they have been added by blockinfile module
+        state: present
