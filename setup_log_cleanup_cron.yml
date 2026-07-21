@@ -1,0 +1,25 @@
+---
+- name: Configure automated log cleanup cron job
+  hosts: webservers
+  become: yes
+  tasks:
+
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: /var/log/shopease-app
+        state: directory
+        mode: '0755'
+
+    - name: Add cron job to clean up logs older than 7 days
+      ansible.builtin.cron:
+        name: "ShopEase log cleanup"
+        minute: "*/2"
+        job: "find /var/log/shopease-app -type f -mtime +7 -delete"
+        user: root
+        state: present
+
+    - name: Verify crond service is running
+      ansible.builtin.service:
+        name: crond
+        state: started
+        enabled: yes
