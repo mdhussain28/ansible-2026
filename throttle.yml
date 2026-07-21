@@ -1,0 +1,25 @@
+---
+- name: ShopEase Prod - Rolling nginx Config Update
+  hosts: prod
+  tasks:
+    - name: Sync updated nginx config (safe to run in parallel)
+      copy:
+        content: |
+          server {
+              listen 80 default_server;
+              location / {
+                  return 200 'ShopEase OK - {{ inventory_hostname }}\n';
+              }
+          }
+        dest: /etc/nginx/conf.d/shopease.conf
+
+    - name: Validate nginx config before reload
+      command: nginx -t
+      changed_when: false
+
+    - name: Reload nginx (throttled - only 1 node reloads at a time)
+      shell: |
+        systemctl stop nginx
+        sleep 4
+        systemctl start nginx
+      throttle: 1
