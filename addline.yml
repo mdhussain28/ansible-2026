@@ -1,0 +1,9 @@
+---
+- name: Add text to the existing file
+  hosts: all
+  tasks:
+    - name: Add a single line of text top a file
+      lineinfile:
+        path: /users.txt
+        line: this line was added by lineinfile
+        state: present
