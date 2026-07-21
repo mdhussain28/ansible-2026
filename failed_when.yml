@@ -1,0 +1,14 @@
+---
+- name: Check free disk space
+  hosts: dev
+
+  tasks:
+    - name: Get free space on root filesystem
+      shell: df -h / | awk 'NR==2 {print $5}' | tr -d '%'
+      register: disk_usage
+      changed_when: false
+      failed_when: disk_usage.stdout | int > 80
+
+    - name: Display disk usage
+      debug:
+        msg: "Disk usage is {{ disk_usage.stdout }}%"
