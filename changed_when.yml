@@ -1,0 +1,13 @@
+---
+- name: ShopEase Prod - changed_when Demo
+  hosts: prod
+  tasks:
+
+    - name: Record which user is running the deployment (audit purposes)
+      command: whoami
+      register: whoami_result
+      changed_when: false
+
+    - name: Show the deployment user
+      debug:
+        msg: "Deployment on {{ inventory_hostname }} is running as: {{ whoami_result.stdout }}"
