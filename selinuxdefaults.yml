@@ -1,0 +1,11 @@
+---
+- name: using the file module to ensure SElinux file content
+  hosts: all
+  tasks:
+    - name: SElinux file content is set to defaults
+      file:
+        path: /users.txt
+        seuser: _default
+        serole: _default
+        setype: _default
+        selevel: _default
