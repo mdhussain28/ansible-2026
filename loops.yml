@@ -1,0 +1,39 @@
+---
+- name: ShopEase Dev Server Setup - Loops
+  hosts: dev
+  vars:
+    required_packages:
+      - nginx
+      - git
+      - curl
+      - unzip
+      - htop
+
+  tasks:
+    - name: Install required ShopEase packages
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ required_packages }}"
+
+    - name: Verify each package is installed
+      command: "rpm -q {{ item }}"
+      loop: "{{ required_packages }}"
+      register: pkg_check
+      changed_when: false
+      failed_when: false
+
+    - name: Show which packages installed successfully
+      debug:
+        msg: "{{ item.item }} → {{ 'OK' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ pkg_check.results }}"
+
+    - name: Ensure ShopEase app directories exist with correct permissions
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/opt/shopease/releases", mode: "0755" }
+        - { path: "/opt/shopease/shared/logs", mode: "0775" }
+        - { path: "/opt/shopease/shared/config", mode: "0700" }
