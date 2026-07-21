@@ -1,0 +1,18 @@
+---
+- name: ShopEase Prod - Fail Percentage 
+  hosts: prod
+  max_fail_percentage: 0
+
+  tasks:
+    - name: Write deployment marker file
+      copy:
+        content: "deployed_at={{ ansible_facts['date_time']['iso8601'] }}\n"
+        dest: /opt/shopease/deploy-marker.txt
+
+    - name: Simulate a hardware fault on eoc-node2 only
+      command: /bin/false
+      when: inventory_hostname == "eoc-node2"
+
+    - name: Confirm deployment complete
+      debug:
+        msg: "Deployment marker written on {{ inventory_hostname }}"
