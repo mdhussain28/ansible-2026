@@ -1,0 +1,35 @@
+---
+- name: Generate dummy logs for cron cleanup testing
+  hosts: webservers
+  become: yes
+  tasks:
+
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: /var/log/shopease-app
+        state: directory
+        mode: '0755'
+
+    - name: Create dummy log files
+      ansible.builtin.file:
+        path: "/var/log/shopease-app/app-{{ item }}.log"
+        state: touch
+        mode: '0644'
+      loop:
+        - "2026-06-01"
+        - "2026-06-15"
+        - "2026-07-01"
+        - "2026-07-16"
+
+    - name: Backdate old log files to simulate age (older than 7 days)
+      ansible.builtin.command: >
+        touch -d "10 days ago" /var/log/shopease-app/app-{{ item }}.log
+      loop:
+        - "2026-06-01"
+        - "2026-06-15"
+        - "2026-07-01"
+      changed_when: false
+
+    - name: Leave the recent one untouched (should NOT be deleted)
+      ansible.builtin.debug:
+        msg: "app-2026-07-16.log kept at current timestamp — represents a fresh log."
