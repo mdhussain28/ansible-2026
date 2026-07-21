@@ -1,0 +1,13 @@
+---
+- name: Using the copy module
+  hosts: all
+  become: yes
+  tasks:
+    - name: Copy a file to managed hosts and set attributes
+      copy:
+        src: files/users.txt
+        dest: /users.txt
+        owner: admin
+        group: admin
+        mode: u+rw,g-wx,o-rwx
+        setype: samba_share_t
