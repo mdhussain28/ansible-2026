@@ -1,0 +1,174 @@
+---
+- name: ShopEase Dev Server Setup - Complete Conditionals Demo
+  hosts: dev
+  vars:
+    required_packages:
+      - nginx
+      - git
+      - curl
+      - unzip
+      - htop
+    dev_debug_tools:
+      - strace
+      - tcpdump
+      - lsof
+    min_free_disk_mb: 1024
+    maintenance_mode: false
+  tasks:
+    # 1. SIMPLE CONDITION: fact-based OS check
+    - name: Install required packages (Debian family)
+      apt:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop: "{{ required_packages }}"
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install required packages (RedHat family)
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ required_packages }}"
+      when: ansible_facts['os_family'] == "RedHat"
+
+    # 2. REGISTERED VARIABLE CONDITION: only restart if present
+    - name: Check if nginx service exists
+      command: systemctl status nginx
+      register: nginx_status
+      changed_when: false
+      failed_when: false
+
+    - name: Restart nginx only if installed
+      service:
+        name: nginx
+        state: restarted
+        enabled: yes
+      when: nginx_status.rc == 0
+
+    # 3. TASK RESULT STATE CONDITION: is success / is failed
+    - name: Check disk usage
+      command: df -h /
+      register: disk_check
+      changed_when: false
+      failed_when: false
+
+    - name: Show disk info if check succeeded
+      debug:
+        msg: "Disk check OK: {{ disk_check.stdout_lines[1] }}"
+      when: disk_check is success
+
+    - name: Warn if disk check itself failed to run
+      debug:
+        msg: "Could not check disk usage on {{ inventory_hostname }}"
+      when: disk_check is failed
+
+    # 4. COMPUTED/MATH CONDITION: real disk space threshold
+    - name: Warn if free disk space is low
+      debug:
+        msg: "WARNING: Free disk space below {{ min_free_disk_mb }}MB on {{ inventory_hostname }}"
+      when: (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first) < (min_free_disk_mb * 1024 * 1024)
+
+    - name: Confirm disk space is sufficient
+      debug:
+        msg: "Sufficient disk space for development work"
+      when: (ansible_facts['mounts'] | selectattr('mount', 'equalto', '/') | map(attribute='size_available') | first) >= (min_free_disk_mb * 1024 * 1024)
+
+    # 5. LIST MEMBERSHIP CONDITION (in / not in): safety guard
+    - name: Install developer debugging tools (dev only, never prod)
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ dev_debug_tools }}"
+      when:
+        - ansible_facts['os_family'] == "RedHat"
+        - "'dev' in group_names"
+        - "'prod' not in group_names"
+
+    # 6. OR CONDITION: applies to any non-prod environment
+    - name: Flag host as non-production
+      debug:
+        msg: "{{ inventory_hostname }} is a non-production environment (safe for debug tools)"
+      when: "'dev' in group_names or 'test' in group_names"
+
+    # 7. IS DEFINED / IS NOT DEFINED: custom fact check
+    - name: Re-gather local facts (in case custom fact exists)
+      setup:
+        filter: local
+
+    - name: Show patch status if custom fact exists
+      debug:
+        msg: "Patch status: {{ ansible_facts['local']['shopease']['shopease']['patch_status'] }}"
+      when:
+        - ansible_facts['local'] is defined
+        - ansible_facts['local']['shopease'] is defined
+
+    - name: Warn if ShopEase custom fact is missing
+      debug:
+        msg: "No ShopEase custom fact found on {{ inventory_hostname }} — patch status unknown"
+      when: >
+        ansible_facts['local'] is not defined
+        or ansible_facts['local']['shopease'] is not defined
+
+    # 8. DIRECT BOOLEAN CONDITION: maintenance mode gate
+    - name: Skip setup if maintenance mode is active
+      debug:
+        msg: "Maintenance mode ON — skipping remaining dev setup on {{ inventory_hostname }}"
+      when: maintenance_mode
+
+    - name: Confirm normal setup is proceeding
+      debug:
+        msg: "Maintenance mode OFF — proceeding normally on {{ inventory_hostname }}"
+      when: not maintenance_mode
+
+    # 9. STRING PATTERN MATCH: enforce ShopEase naming convention
+    - name: Confirm host follows ShopEase naming convention (eoc-*)
+      debug:
+        msg: "{{ inventory_hostname }} matches ShopEase naming convention"
+      when: inventory_hostname is match("eoc-.*")
+
+    - name: Warn if host does not follow naming convention
+      debug:
+        msg: "{{ inventory_hostname }} does NOT match expected 'eoc-*' naming pattern"
+      when: inventory_hostname is not match("eoc-.*")
+
+    # 10. BLOCK-LEVEL CONDITION: group multiple tasks under one when
+    - name: Dev-only onboarding messages (block-level condition)
+      block:
+        - name: Welcome message for developers
+          debug:
+            msg: "Welcome, {{ inventory_hostname }} is ready for ShopEase development work"
+
+        - name: Reminder about dev debug tools
+          debug:
+            msg: "Debug tools (strace, tcpdump, lsof) are available on this host"
+
+        - name: Reminder about environment isolation
+          debug:
+            msg: "Remember: never point this dev box at the production database"
+      when: "'dev' in group_names"
+
+    # 11. LOOP + REGISTER + CONDITIONAL combined (recap)
+    - name: Verify each package installed correctly (RedHat only)
+      command: "rpm -q {{ item }}"
+      loop: "{{ required_packages }}"
+      register: pkg_check
+      changed_when: false
+      failed_when: false
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Show per-package install status
+      debug:
+        msg: "{{ item.item }} → {{ 'OK' if item.rc == 0 else 'MISSING' }}"
+      loop: "{{ pkg_check.results }}"
+      when: pkg_check is defined and pkg_check.results is defined
+
+    # 12. LOOP over list of dictionaries (unconditional, for completeness)
+    - name: Ensure ShopEase app directories exist with correct permissions
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/opt/shopease/releases", mode: "0755" }
+        - { path: "/opt/shopease/shared/logs", mode: "0775" }
+        - { path: "/opt/shopease/shared/config", mode: "0700" }
