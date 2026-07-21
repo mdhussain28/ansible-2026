@@ -1,0 +1,12 @@
+---
+- hosts: eoc-node2
+  handlers:
+    - name: restart sshd
+      service:
+  tasks:
+    - lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+      notify: restart sshd
+      tags: Edit_sshd_config
