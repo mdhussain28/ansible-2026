@@ -1,0 +1,19 @@
+---
+- name: ShopEase Prod - ignore_unreachable
+  hosts: eoc-node3
+  gather_facts: false
+  tasks:
+
+    - name: Basic reachability self-check
+      command: echo "eoc-node3 responded"
+      register: reach_check
+      ignore_unreachable: yes
+
+    - name: Report result
+      debug:
+        msg: >-
+          {% if reach_check.unreachable | default(false) %}
+          {{ inventory_hostname }} is unreachable.
+          {% else %}
+          {{ inventory_hostname }} is reachable. Hostname: {{ reach_check.stdout }}
+          {% endif %}
