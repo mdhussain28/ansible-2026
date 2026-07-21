@@ -1,0 +1,15 @@
+---
+- name: ShopEase Prod - Patch nginx across fleet
+  hosts: prod
+  tasks:
+    - name: Update nginx package
+      package:
+        name: nginx
+        state: latest
+      register: pkg_result
+
+    - name: Restart nginx to apply update
+      service:
+        name: nginx
+        state: restarted
+      when: pkg_result.changed
