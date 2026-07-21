@@ -1,0 +1,17 @@
+---
+- name: ShopEase Prod - any_errors_fatal
+  hosts: prod
+  tasks:
+    - name: Verify ShopEase configuration file exists
+      stat:
+        path: /opt/shopease-active.conf
+      register: config_file
+
+    - name: Fail if configuration file is missing
+      fail:
+        msg: "ShopEase configuration file is missing on {{ inventory_hostname }}."
+      when: not config_file.stat.exists
+
+    - name: Confirm deployment validation passed
+      debug:
+        msg: "ShopEase deployment validated successfully on {{ inventory_hostname }}"
